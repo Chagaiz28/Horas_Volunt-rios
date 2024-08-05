@@ -1,62 +1,141 @@
-function onSubmitForm(e) {
-  // Obtém os valores do formulário do evento
-  var formResponse = e.response;
-
-  // Obtém as respostas individuais do formulário
-  var itemResponses = formResponse.getItemResponses();
-
-  var email = "";
-
-  // Percorre todas as respostas para encontrar a resposta de e-mail
+function onSubmit() {
+  console.log("Função onSubmit chamada"); // Log para depuração
+  var form = FormApp.openById('1C8E2eEc2tyb-J-uyj1x-IVt__3jYRpAu9ciDiXWRrzo');
+  var responses = form.getResponses();
+  var latestResponse = responses[responses.length - 1];
+  var itemResponses = latestResponse.getItemResponses();
+  
+  var email = '';
+  var horarioServico = ''; // Variável para armazenar a resposta da hora do serviço
+  var horasviagem = ''; // Variável para armazenar a resposta da quantidade de horas de viagem
   for (var i = 0; i < itemResponses.length; i++) {
-    var itemResponse = itemResponses[i];
-    var question = itemResponse.getItem().getTitle(); // Obtém o título da pergunta
-
-    // Verifica se a pergunta é sobre o e-mail
-    if (question === 'Digite seu e-mail do Inatel') {
-      // Obtém o e-mail da resposta
-      email = itemResponse.getResponse().emailAddress;
-      break;
+    var title = itemResponses[i].getItem().getTitle().toLowerCase();
+    var response = itemResponses[i].getResponse();
+    if (title == 'digite seu e-mail do inatel') {
+      email = response.trim().toLowerCase();
+    } else if (title == 'marque a hora que prestou o serviço') {
+      horarioServico = response.trim();
+    } else if (title == 'assinale a quantidade de horas que você realizou neste dia') {
+      horasviagem = response.trim();
     }
   }
 
-  // Chama a função myFunction com o email extraído como argumento
-  myFunction(email);
-}
-
-function myFunction(email) {
-  // Verifica se o e-mail foi submetido
-  if (!email || email.length === 0) {
-    console.error('Erro: E-mail não fornecido.');
-    return;
+  var planilha = SpreadsheetApp.openById('1wrGmGrrLAeHIsWSqqp8lYAXF-3Nih4Eo6oVEmnmZ5h0');
+  var sheet = planilha.getSheetByName('Página1'); 
+  var dados = sheet.getDataRange().getValues();
+  var horaInicial = 1.5; // Hora inicial padrão
+  
+  if (horarioServico === '8h' || horarioServico === '10h') {
+    horaInicial = 2;
   }
 
-  // Abre a planilha
-  var ss = SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1wrGmGrrLAeHIsWSqqp8lYAXF-3Nih4Eo6oVEmnmZ5h0/edit#gid=0');
-  var sheet = ss.getSheetByName('Página1');
-
-  // Verifica se o e-mail já existe na planilha
-  var values = sheet.getRange('A:A').getValues();
+  if (horasviagem === '2') {
+        horaInicial = 2;
+    } else if (horasviagem === '4'){
+        horaInicial = 4;
+    } else if (horasviagem === '6'){
+        horaInicial = 6;
+    } else if (horasviagem === '8'){
+        horaInicial = 8;
+    } else if (horasviagem === '10'){
+        horaInicial = 10;
+    }
+    
+  console.log("Dados da planilha carregados, número de linhas: " + dados.length); // Log para depuração
+  
+  if (dados.length <= 1) {
+    sheet.appendRow([email, horaInicial.toFixed(2).replace('.', ',')]);
+    console.log("Adicionando primeira linha para: " + email); // Log para depuração
+    return; // Encerra a função após adicionar a primeira linha
+  }
+  
   var emailExiste = false;
-  var linhaEmail;
+  var rowIndex = -1;
 
-  for (var i = 0; i < values.length; i++) {
-    if (values[i][0] === email) {
+  for (var i = 1; i < dados.length; i++) {
+    if (dados[i][0].toLowerCase().trim() == email) {
       emailExiste = true;
-      linhaEmail = i + 1; // Ajusta o índice baseado em 0 para baseado em 1
+      rowIndex = i;
       break;
     }
   }
 
-  // Se o e-mail existir, atualiza as horas
   if (emailExiste) {
-    var horasExistentes = parseFloat(sheet.getRange(linhaEmail, 2).getValue());
-    var horas = horasExistentes + 1.5;
-    sheet.getRange(linhaEmail, 2).setValue(horas);
+    var horasAtuais = parseFloat(dados[rowIndex][1].replace(',', '.'));
+    console.log("Atualizando horas para: " + email + ", Horas atuais: " + horasAtuais + ", Novas horas: " + (horasAtuais + horaInicial)); // Log para depuração
+    sheet.getRange(rowIndex + 1, 2).setValue((horasAtuais + horaInicial).toFixed(2).replace('.', ','));
   } else {
-    // Se o e-mail não existir, adiciona uma nova linha com as horas iniciais
-    var ultimaLinha = sheet.getLastRow() + 1;
-    sheet.getRange(ultimaLinha, 1).setValue(email); // Armazena o email na coluna A
-    sheet.getRange(ultimaLinha, 2).setValue(1.5);    // Define as horas iniciais na coluna B
+    console.log("Adicionando nova linha para: " + email); // Log para depuração
+    sheet.appendRow([email, horaInicial.toFixed(2).replace('.', ',')]);
+  }
+}function onSubmit() {
+  console.log("Função onSubmit chamada"); // Log para depuração
+  var form = FormApp.openById('1C8E2eEc2tyb-J-uyj1x-IVt__3jYRpAu9ciDiXWRrzo');
+  var responses = form.getResponses();
+  var latestResponse = responses[responses.length - 1];
+  var itemResponses = latestResponse.getItemResponses();
+  
+  var email = '';
+  var horarioServico = ''; // Variável para armazenar a resposta da hora do serviço
+  var horasviagem = ''; // Variável para armazenar a resposta da quantidade de horas de viagem
+  for (var i = 0; i < itemResponses.length; i++) {
+    var title = itemResponses[i].getItem().getTitle().toLowerCase();
+    var response = itemResponses[i].getResponse();
+    if (title == 'digite seu e-mail do inatel') {
+      email = response.trim().toLowerCase();
+    } else if (title == 'marque a hora que prestou o serviço') {
+      horarioServico = response.trim();
+    } else if (title == 'assinale a quantidade de horas que você realizou neste dia') {
+      horasviagem = response.trim();
+    }
+  }
+
+  var planilha = SpreadsheetApp.openById('1wrGmGrrLAeHIsWSqqp8lYAXF-3Nih4Eo6oVEmnmZ5h0');
+  var sheet = planilha.getSheetByName('Página1'); 
+  var dados = sheet.getDataRange().getValues();
+  var horaInicial = 1.5; // Hora inicial padrão
+  
+  if (horarioServico === '8h' || horarioServico === '10h') {
+    horaInicial = 2;
+  }
+
+  if (horasviagem === '2') {
+        horaInicial = 2;
+    } else if (horasviagem === '4'){
+        horaInicial = 4;
+    } else if (horasviagem === '6'){
+        horaInicial = 6;
+    } else if (horasviagem === '8'){
+        horaInicial = 8;
+    } else if (horasviagem === '10'){
+        horaInicial = 10;
+    }
+    
+  console.log("Dados da planilha carregados, número de linhas: " + dados.length); // Log para depuração
+  
+  if (dados.length <= 1) {
+    sheet.appendRow([email, horaInicial.toFixed(2).replace('.', ',')]);
+    console.log("Adicionando primeira linha para: " + email); // Log para depuração
+    return; // Encerra a função após adicionar a primeira linha
+  }
+  
+  var emailExiste = false;
+  var rowIndex = -1;
+
+  for (var i = 1; i < dados.length; i++) {
+    if (dados[i][0].toLowerCase().trim() == email) {
+      emailExiste = true;
+      rowIndex = i;
+      break;
+    }
+  }
+
+  if (emailExiste) {
+    var horasAtuais = parseFloat(dados[rowIndex][1].replace(',', '.'));
+    console.log("Atualizando horas para: " + email + ", Horas atuais: " + horasAtuais + ", Novas horas: " + (horasAtuais + horaInicial)); // Log para depuração
+    sheet.getRange(rowIndex + 1, 2).setValue((horasAtuais + horaInicial).toFixed(2).replace('.', ','));
+  } else {
+    console.log("Adicionando nova linha para: " + email); // Log para depuração
+    sheet.appendRow([email, horaInicial.toFixed(2).replace('.', ',')]);
   }
 }
